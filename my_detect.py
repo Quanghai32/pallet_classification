@@ -6,11 +6,11 @@ cap = cv2.VideoCapture(0)
 # cap.set(4, 600)
 
 with torch.no_grad(): 
-    device = torch_utils.select_device('0')
+    device = torch_utils.select_device('cpu') # cpu, 0
     torch.backends.cudnn.benchmark = True 
 
     # Load model
-    weights = '' # link to  model in ./weights
+    weights = './weights/best5s.pt' # link to  model in ./weights
     model = torch.load(weights, map_location=device)['model']
     model.to(device).eval()
     names = model.names if hasattr(model, 'names') else model.modules.names #['OK', 'NG_pallet', 'NG_wood','CCL1'] 
@@ -35,13 +35,16 @@ with torch.no_grad():
                                    fast=True, classes=None, agnostic=False)
 
             draw_border(frame,(20,200),(780,500),30,th=4)
+            # print(pred)
             for i, det in enumerate(pred):
                 if det is not None and len(det):
                     det[:, :4] = scale_coords(img.shape[2:], det[:, :4], process_frame.shape).round()
-                    for *xyxy, conf, cls in det:
-                        label = '%s %.2f' % (names[int(cls)], conf)  # Pallet type
+                    for *xyxy, conf, cls_ in det:
+                        index_result = int(cls_)
+                        label = '%s %.2f' % (names[index_result], conf)  # Pallet type
                         xyxy = [int(xyxy[0]+20), int(xyxy[1]+200), int(xyxy[2]+20), int(xyxy[3]+200)]
-                        distance = plot_one_box(xyxy, frame, label=label, color=colors[int(cls)], line_thickness=2) 
+                        distance = plot_one_box(xyxy, frame, label=label, color=colors[index_result], line_thickness=2) 
+                        print(label, xyxy, distance)
 
             key = cv2.waitKey(1) & 0xFF
             if key == ord('q'):
